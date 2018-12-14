@@ -1,2 +1,6 @@
 ---
-# defaults file for ansible-gitlab-runner
+gitlab_url: false
+gitlab_runner_token: false
+gitlab_runner_description: false
+gitlab_runner_tag: false
+gitlab_runner_locked: false
