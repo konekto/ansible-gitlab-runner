@@ -1,0 +1,14 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+
+    - include_role:
+        name: ansible-gitlab-runner
+      vars:
+        # for testing a correct values for gitlab_url and gitlab_runner_token
+        gitlab_url: https://gitlab.konek.to
+        gitlab_runner_token: s1snr6iNvoxEapC772tU
+        gitlab_runner_description: A test runner
+        gitlab_runner_tag: test
+        gitlab_runner_locked: true

@@ -1,0 +1,24 @@
+---
+- name: Prepare
+  hosts: all
+  tasks:
+    - name: Install python for Ansible
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+      become: true
+      changed_when: false
+
+    - name: Ensure docker is installed
+      import_role:
+        name: geerlingguy.docker
+      vars:
+        docker_users:
+          - vagrant
+      become: true
+
+    - name: Ensure docker-py is installed
+      pip:
+        name: "{{item}}"
+      become: true
+      loop:
+        - setuptools
+        - docker
