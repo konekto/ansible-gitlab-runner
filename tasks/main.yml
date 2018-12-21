@@ -1,15 +1,4 @@
 ---
-
-- debug:
-    var: "{{ item }}"
-  loop:
-    - gitlab_url
-    - gitlab_runner_token
-    - gitlab_runner_description
-    - gitlab_runner_tag
-    - gitlab_runner_locked
-
-
 - fail:
     msg: Please provide all required variables
   when: not gitlab_url or not gitlab_runner_token or not gitlab_runner_description or not gitlab_runner_tag
@@ -37,7 +26,8 @@
     image: gitlab/gitlab-runner
     name: gitlab-runner-register
     state: started
-    auto_remove: true
+#   can only be used with pip docker new version, Cent os does not provide id yet.
+#    auto_remove: true
     volumes:
     - /srv/gitlab-runner/config:/etc/gitlab-runner
     command: "register --non-interactive --executor \"docker\" --docker-image docker:latest --url \"{{gitlab_url}}\" --registration-token \"{{gitlab_runner_token}}\" --description \"{{gitlab_runner_description}}\" --tag-list \"{{gitlab_runner_tag}}\" --locked=\"{{gitlab_runner_locked}}\""
