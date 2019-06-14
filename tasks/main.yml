@@ -9,6 +9,17 @@
   register: conf
   become: true
 
+- name: "Ensure runner is not registered already"
+  lineinfile:
+    name: /srv/gitlab-runner/config/config.toml
+    line: "name = \"{{gitlab_runner_description}}\""
+    state: present
+  check_mode: yes
+  register: conf
+
+  debug:
+    var: conf
+
 - name: Ensure gitlab runner is running
   docker_container:
     image: gitlab/gitlab-runner
