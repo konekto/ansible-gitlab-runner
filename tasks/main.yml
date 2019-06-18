@@ -3,22 +3,20 @@
     msg: Please provide all required variables
   when: not gitlab_url or not gitlab_runner_token or not gitlab_runner_description or not gitlab_runner_tag
 
-- name: "Ensure runner is not registered already"
-  stat:
-    path: /srv/gitlab-runner/config/config.toml
-  register: conf
+- name: Ensure python-toml is installed
+  pip:
+    name: toml
+    extra_args: "--user"
+
+- name: Ensure that the runner is not registered already
+  script: "src/search-runner.py --config /srv/gitlab-runner/config/config.toml --query \"{{gitlab_runner_description}}\""
+  args:
+    executable: python
   become: true
+  register: script_output
 
-- name: "Ensure runner is not registered already"
-  lineinfile:
-    name: /srv/gitlab-runner/config/config.toml
-    line: "name = \"{{gitlab_runner_description}}\""
-    state: present
-  check_mode: yes
-  register: conf
-
-  debug:
-    var: conf
+- set_fact:
+    runner_exists: "{{ script_output.stdout_lines[0] == 'True' }}"
 
 - name: Ensure gitlab runner is running
   docker_container:
@@ -30,7 +28,18 @@
     volumes:
     - /srv/gitlab-runner/config:/etc/gitlab-runner
     - /var/run/docker.sock:/var/run/docker.sock
-  when: not conf.stat.exists
+  when: not runner_exists
+
+- name: Verify all runners and delete old ones
+  docker_container:
+    image: gitlab/gitlab-runner
+    name: gitlab-runner-verify
+    state: started
+    #   can only be used with pip docker new version, Cent os does not provide id yet.
+    #    auto_remove: true
+    volumes:
+      - /srv/gitlab-runner/config:/etc/gitlab-runner
+    command: "verify --delete"
 
 - name: Register a new gitlab runner
   docker_container:
@@ -42,7 +51,7 @@
     volumes:
     - /srv/gitlab-runner/config:/etc/gitlab-runner
     command: "register --non-interactive --executor \"docker\" --docker-image docker:latest --url \"{{gitlab_url}}\" --registration-token \"{{gitlab_runner_token}}\" --description \"{{gitlab_runner_description}}\" --tag-list \"{{gitlab_runner_tag}}\" --locked=\"{{gitlab_runner_locked}}\""
-  when: not conf.stat.exists
+  when: not runner_exists
 
 - name: Ensure the Docker socket is in the Gitlab Runner config section as volume definied
   lineinfile:
@@ -50,4 +59,4 @@
     regexp: volumes
     path: /srv/gitlab-runner/config/config.toml
   become: true
-  when: not conf.stat.exists
+  when: not runner_exists
