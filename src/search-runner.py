@@ -25,3 +25,7 @@ for runner in config_file_as_toml['runners']:
         print('True')
         exit(0)
 
+print('False')
+exit(0)
+
+

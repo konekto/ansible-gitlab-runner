@@ -3,15 +3,18 @@
   hosts: all
   tasks:
     - name: Install python for Ansible
-      raw: yum -y install epel-release python python-pip
+      raw: "yum -y install epel-release python && yum -y install python-pip"
       become: true
+      register: out
+
+    - debug:
+        var: out
 
     - name: Ensure docker-py is installed
       pip:
         name: "{{item}}"
       become: true
       loop:
-        - setuptools
         - docker
 
     - name: Ensure docker is installed
@@ -21,4 +24,3 @@
         docker_users:
           - vagrant
       become: true
-

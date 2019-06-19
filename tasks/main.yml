@@ -6,7 +6,13 @@
 - name: Ensure python-toml is installed
   pip:
     name: toml
-    extra_args: "--user"
+  become: true
+
+- name: Check if config file exists
+  stat:
+    path: /srv/gitlab-runner/config/config.toml
+  become: true
+  register: config_file
 
 - name: Ensure that the runner is not registered already
   script: "src/search-runner.py --config /srv/gitlab-runner/config/config.toml --query \"{{gitlab_runner_description}}\""
@@ -14,9 +20,21 @@
     executable: python
   become: true
   register: script_output
+  when: config_file.stat.exists
+
+- debug:
+    var: script_output
 
 - set_fact:
     runner_exists: "{{ script_output.stdout_lines[0] == 'True' }}"
+  when: config_file.stat.exists
+
+- set_fact:
+    runner_exists: false
+  when: not config_file.stat.exists
+
+- debug:
+    var: runner_exists
 
 - name: Ensure gitlab runner is running
   docker_container:
@@ -26,8 +44,8 @@
     restart_policy: always
     state: started
     volumes:
-    - /srv/gitlab-runner/config:/etc/gitlab-runner
-    - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
   when: not runner_exists
 
 - name: Verify all runners and delete old ones
@@ -49,9 +67,12 @@
 #   can only be used with pip docker new version, Cent os does not provide id yet.
 #    auto_remove: true
     volumes:
-    - /srv/gitlab-runner/config:/etc/gitlab-runner
+      - /srv/gitlab-runner/config:/etc/gitlab-runner
     command: "register --non-interactive --executor \"docker\" --docker-image docker:latest --url \"{{gitlab_url}}\" --registration-token \"{{gitlab_runner_token}}\" --description \"{{gitlab_runner_description}}\" --tag-list \"{{gitlab_runner_tag}}\" --locked=\"{{gitlab_runner_locked}}\""
   when: not runner_exists
+
+- pause:
+    seconds: 10
 
 - name: Ensure the Docker socket is in the Gitlab Runner config section as volume definied
   lineinfile:
@@ -59,4 +80,4 @@
     regexp: volumes
     path: /srv/gitlab-runner/config/config.toml
   become: true
-  when: not runner_exists
+#  when: not runner_exists
