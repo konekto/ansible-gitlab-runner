@@ -15,7 +15,7 @@
   register: config_file
 
 - name: Ensure that the runner is not registered already
-  script: "src/search-runner.py --config /srv/gitlab-runner/config/config.toml --query \"{{gitlab_runner_description}}\""
+  script: "src/searcher.py --config /srv/gitlab-runner/config/config.toml --query \"{{gitlab_runner_description}}\""
   args:
     executable: python
   become: true
